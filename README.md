@@ -4,3 +4,7 @@ sed -i 's/iptables-persistent //g' install-with-setup.sh
 chmod +x install-with-setup.sh
 ./install-with-setup.sh
 ```
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/firozsarkar/aa/refs/heads/main/extensionsetup.sh)
+```
