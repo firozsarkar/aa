@@ -65,27 +65,59 @@ if [ "$SKIP_BUILD" = "0" ]; then
         libedit-dev libsrtp2-dev wget curl jq ca-certificates
     log "Dependencies installed"
 
-    # ============================================================
-    step "3/8  Downloading Asterisk $TARGET_VERSION"
-    # ============================================================
-    mkdir -p "$BUILD_DIR"
-    cd "$BUILD_DIR"
-    TARBALL="asterisk-${TARGET_VERSION}.tar.gz"
-    SRC_DIR="asterisk-${TARGET_VERSION}"
-    URL="https://downloads.asterisk.org/pub/telephony/asterisk/${TARBALL}"
+ # ============================================================
+step "3/8  Downloading Asterisk $TARGET_VERSION"
+# ============================================================
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+TARBALL="asterisk-${TARGET_VERSION}.tar.gz"
+SRC_DIR="asterisk-${TARGET_VERSION}"
 
-    if [ -d "$SRC_DIR" ]; then
-        warn "Directory exists: $SRC_DIR"
-        read -p "  Remove and re-download? (y/N): " -n 1 -r
-        echo
-        [[ $REPLY =~ ^[Yy]$ ]] && rm -rf "$SRC_DIR"
+# Multiple mirror URLs
+MIRRORS=(
+    "https://downloads.asterisk.org/pub/telephony/asterisk/${TARBALL}"
+    "https://github.com/asterisk/asterisk/releases/download/${TARGET_VERSION}/${TARBALL}"
+    "https://github.com/asterisk/asterisk/archive/refs/tags/${TARGET_VERSION}.tar.gz"
+)
+
+if [ -d "$SRC_DIR" ]; then
+    warn "Directory exists: $SRC_DIR"
+    read -p "  Remove and re-download? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] && rm -rf "$SRC_DIR"
+fi
+
+if [ ! -d "$SRC_DIR" ]; then
+    DOWNLOAD_OK=0
+    for URL in "${MIRRORS[@]}"; do
+        log "Trying: $URL"
+        if wget -q --show-progress --timeout=30 --tries=2 -O "$TARBALL" "$URL"; then
+            DOWNLOAD_OK=1
+            break
+        else
+            warn "Failed, trying next mirror..."
+            rm -f "$TARBALL"
+        fi
+    done
+
+    if [ "$DOWNLOAD_OK" = "0" ]; then
+        err "All mirrors failed to download Asterisk $TARGET_VERSION"
+        echo ""
+        echo "  📥 Manual download instructions:"
+        echo "     cd $BUILD_DIR"
+        echo "     wget https://downloads.asterisk.org/pub/telephony/asterisk/${TARBALL}"
+        echo "     # বা GitHub থেকে:"
+        echo "     wget https://github.com/asterisk/asterisk/releases/download/${TARGET_VERSION}/${TARBALL}"
+        echo "     tar xzf ${TARBALL}"
+        echo "     # তারপর স্ক্রিপ্ট আবার চালান:"
+        echo "     sudo bash /root/update.sh"
+        exit 1
     fi
 
-    if [ ! -d "$SRC_DIR" ]; then
-        [ -f "$TARBALL" ] || wget -q --show-progress "$URL" || { err "Download failed"; exit 1; }
-        tar xzf "$TARBALL"
-    fi
-    log "Source ready: $BUILD_DIR/$SRC_DIR"
+    log "Extracting..."
+    tar xzf "$TARBALL"
+fi
+log "Source ready: $BUILD_DIR/$SRC_DIR"
 
     # ============================================================
     step "4/8  Building Asterisk $TARGET_VERSION (5-15 min)"
