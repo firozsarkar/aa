@@ -8,3 +8,6 @@ chmod +x install-with-setup.sh
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/firozsarkar/aa/refs/heads/main/extensionsetup.sh)
 ```
+```bash
+bash <(curl -s https://raw.githubusercontent.com/firozsarkar/aa/refs/heads/main/fix-pjsip-aor.sh)
+```
